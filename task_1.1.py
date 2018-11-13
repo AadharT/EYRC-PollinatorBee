@@ -62,9 +62,9 @@ class DroneFly():
         self.kd_yaw = 0.0
 
         #PID constants for Throttle
-        self.kp_throt = 181.0
+        self.kp_throt = 0.0
         self.ki_throt = 0.0
-        self.kd_throt = 11.0
+        self.kd_throt = 0.0
 
         # Correction values after PID is computed
         self.correct_roll = 0.0
@@ -90,6 +90,13 @@ class DroneFly():
         self.I_value_throt = 0.0
         self.DerivatorT = 0.0
         self.IntegratorT = 0.0
+        # Pid calculation parameters for Throttle
+        self.error_roll = 0.0
+        self.P_value_roll = 0.0
+        self.D_value_roll = 0.0
+        self.I_value_roll = 0.0
+        self.DerivatorR = 0.0
+        self.IntegratorR = 0.0
 
         rospy.sleep(.1)
 
@@ -126,7 +133,7 @@ class DroneFly():
             pitch_value = int(1500 - self.correct_pitch)
             self.cmd.rcPitch = self.limit (pitch_value, 1600, 1400)
 
-            roll_value = int(1500 + self.correct_roll)
+            roll_value = int(1500 - self.correct_roll)
             self.cmd.rcRoll = self.limit(roll_value, 1600,1400)
 
             throt_value = int(1500 - self.correct_throt)
@@ -147,16 +154,47 @@ class DroneFly():
 
 
     def pid_roll(self):
-                 print ("\n")
+        self.error_roll = self.wp_y - self.drone_y
+        self.P_value_roll = self.kp_roll * self.error_roll
+        self.D_value_roll = self.kd_roll * ( self.error_roll - self.DerivatorR)
+        self.DerivatorR = self.error_roll
+
+        self.IntegratorR = self.IntegratorR + self.error_roll
+
+         # if self.Integrator > 500:
+         #     self.Integrator = self.Integrator_max
+         # elif self.Integrator < -500:
+         #     self.Integrator = self.Integrator_min
+
+        self.I_value_roll = self.IntegratorR * self.ki_roll
+
+        self.correct_roll = (self.P_value_roll + self.I_value_roll/1000 + self.D_value_roll)/100
+        print (self.correct_roll)
         #Compute Roll PID here
 
     def pid_pitch(self):
-       	print (self.correct_throt)
+        self.error_pitch = self.wp_x - self.drone_x
+        self.P_value_pitch = self.kp_pitch * self.error_pitch
+        self.D_value_pitch = self.kd_pitch * ( self.error_pitch - self.DerivatorP)
+        self.DerivatorP = self.error_pitch
+
+        self.IntegratorP = self.IntegratorP + self.error_pitch
+
+         # if self.Integrator > 500:
+         #     self.Integrator = self.Integrator_max
+         # elif self.Integrator < -500:
+         #     self.Integrator = self.Integrator_min
+
+        self.I_value_pitch = self.IntegratorP * self.ki_pitch
+
+        self.correct_pitch = (self.P_value_pitch + self.I_value_pitch/1000 + self.D_value_pitch)/100
+        print (self.correct_pitch)
+        #Compute Pitch PID here
 
     def pid_throt(self):
         self.error_throt = self.wp_z - self.drone_z
         self.P_value_throt = self.kp_throt * self.error_throt
-        self.D_value_throt = self.kd_throt * ( self.error_throt - self.Derivator)
+        self.D_value_throt = self.kd_throt * ( self.error_throt - self.DerivatorT)
         self.DerivatorT = self.error_throt
 
         self.IntegratorT = self.IntegratorT + self.error_throt
@@ -168,7 +206,7 @@ class DroneFly():
 
         self.I_value_throt = self.IntegratorT * self.ki_throt
 
-        self.correct_throt = (self.P_value_throt + self.I_value_throt + self.D_value_throt)/100
+        self.correct_throt = (self.P_value_throt + self.I_value_throt/1000 + self.D_value_throt)/100
 
 
         #print (self.correct_throt)
