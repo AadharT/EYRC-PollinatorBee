@@ -151,22 +151,7 @@ class DroneFly():
         #Compute Roll PID here
 
     def pid_pitch(self):
-        self.error_pitch = self.wp_y - self.drone_y
-        self.P_value_pitch = self.kp_pitch * self.error_pitch
-        self.D_value_pitch = self.kd_throt * ( self.error_pitch - self.DerivatorP)
-        self.DerivatorP = self.error_pitch
-
-        self.IntegratorP = self.IntegratorP + self.error_pitch
-
-         # if self.Integrator > 500:
-         #     self.Integrator = self.Integrator_max
-         # elif self.Integrator < -500:
-         #     self.Integrator = self.Integrator_min
-
-        self.I_value_pitch = self.IntegratorP * self.ki_pitch
-
-        self.correct_pitch = (self.P_value_pitch + self.I_value_pitch + self.D_value_pitch)/100
-        #Compute Pitch PID here
+       	print (self.correct_throt)
 
     def pid_throt(self):
         self.error_throt = self.wp_z - self.drone_z
