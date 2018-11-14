@@ -6,6 +6,7 @@ from pid_tune.msg import *
 from geometry_msgs.msg import PoseArray
 from std_msgs.msg import Int32
 from std_msgs.msg import Float32
+from std_msgs.msg import Float64
 import rospy
 import time
 
@@ -22,6 +23,7 @@ class DroneFly():
         self.pluto_throt = rospy.Publisher('/error_throt', Float32, queue_size=10)
 
         rospy.Subscriber('whycon/poses', PoseArray, self.get_pose)
+        rospy.Subscriber('/drone_yaw', Float64, self.get_yaw)
 
         # To tune the drone during runtime
         rospy.Subscriber('/pid_tuning_altitude', PidTune, self.set_pid_alt)
@@ -35,6 +37,7 @@ class DroneFly():
         self.wp_x = -5.63
         self.wp_y = -5.63
         self.wp_z = 30.0
+        self.currentyaw = 0
 
         self.cmd.rcRoll = 1500
         self.cmd.rcPitch = 1500
@@ -150,10 +153,13 @@ class DroneFly():
             throt_value = int(1500 - self.correct_throt)
             self.cmd.rcThrottle = self.limit(throt_value, 1750,1350)
 
+            yaw_value = int(1500 + self.correct_yaw)
+            self.cmd.rcYaw = self.limit(yaw_value, 1650,1450)
+
             self.pluto_cmd.publish(self.cmd)
-            self.error_yaw.publish(self.cmd)
-            self.pluto_cmd.publish(self.cmd)
-            self.pluto_cmd.publish(self.cmd)
+            self.pluto_throt.publish(self.error_throt)
+            self.pluto_roll.publish(self.error_roll)
+            self.pluto_pitch.publish(self.error_pitch)
 
 
     def calc_pid(self):
@@ -163,28 +169,28 @@ class DroneFly():
             self.pid_roll()
             self.pid_pitch()
             self.pid_throt()
-            #self.pid_yaw()
+            self.pid_yaw()
             self.last_time = self.seconds
 
 
-    # def pid_yaw(self):
-    #     self.error_yaw =  - self.drone
-    #     self.P_value_yaw = self.kp_yaw * self.error_yaw
-    #     self.D_value_yaw = self.kd_yaw * ( self.error_yaw - self.DerivatorY)
-    #     self.DerivatorY = self.error_yaw
-    #
-    #     self.IntegratorY = self.IntegratorY + self.error_yaw
-    #
-    #      # if self.Integrator > 500:
-    #      #     self.Integrator = self.Integrator_max
-    #      # elif self.Integrator < -500:
-    #      #     self.Integrator = self.Integrator_min
-    #
-    #     self.I_value_yaw = self.IntegratorY * self.ki_yaw
-    #
-    #     self.correct_yaw = (self.P_value_yaw + self.I_value_yaw/1000 + self.D_value_yaw)/100
-    #     print ("Yaw":self.correct_yaw)
-    #     #Compute Roll PID here
+    def pid_yaw(self):
+        self.error_yaw =  1 - self.currentyaw
+        self.P_value_yaw = self.kp_yaw * self.error_yaw
+        self.D_value_yaw = self.kd_yaw * ( self.error_yaw - self.DerivatorY)
+        self.DerivatorY = self.error_yaw
+
+        self.IntegratorY = self.IntegratorY + self.error_yaw
+
+         # if self.Integrator > 500:
+         #     self.Integrator = self.Integrator_max
+         # elif self.Integrator < -500:
+         #     self.Integrator = self.Integrator_min
+
+        self.I_value_yaw = self.IntegratorY * self.ki_yaw
+
+        self.correct_yaw = (self.P_value_yaw + self.I_value_yaw/1000 + self.D_value_yaw)/100
+        print ("Yaw: ",self.correct_yaw)
+        #Compute Roll PID here
 
     def pid_roll(self):
         self.error_roll = self.wp_y - self.drone_y
@@ -242,7 +248,7 @@ class DroneFly():
         self.correct_throt = (self.P_value_throt + self.I_value_throt/1000 + self.D_value_throt)/100
 
 
-        print ("Throttle", self.correct_throt)
+        print ("Throttle", self.kp_throt)
         #Compute Throttle PID here
 
     def limit(self, input_value, max_value, min_value):
@@ -301,9 +307,17 @@ class DroneFly():
         self.drone_y = pose.poses[0].position.y
         self.drone_z = pose.poses[0].position.z
 
+    def get_yaw(self,yaw):
+
+        #This is the subscriber function to get the whycon poses
+        #The x, y and z values are stored within the drone_x, drone_y and the drone_z variables
+
+        self.currentyaw = yaw.data
+
 
 if __name__ == '__main__':
     while not rospy.is_shutdown():
         temp = DroneFly()
         temp.position_hold()
         rospy.spin()
+
