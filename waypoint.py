@@ -10,6 +10,10 @@ from std_msgs.msg import Float64
 import rospy
 import time
 
+way1 = 1
+way3 = 1
+way2 = 1
+way4 = 1
 
 class DroneFly():
     """docstring for DroneFly"""
@@ -34,9 +38,31 @@ class DroneFly():
         self.cmd = PlutoMsg()
 
         # Position to hold.
-        self.wp_x = -5.63
-        self.wp_y = -5.63
-        self.wp_z = 30.0
+        if (way1==1)
+            self.wp_x = -5.63
+            self.wp_y = -5.63
+            self.wp_z = 30.0
+            way1 = 0
+        else if (way2==1)
+            self.wp_x = 5.57
+            self.wp_y = -5.63
+            self.wp_z = 30.0
+            way2 = 0
+        else if (way3==1)
+            self.wp_x = 5.55
+            self.wp_y = 5.54
+            self.wp_z = 30.0
+            way3 = 0
+        else if (way4==1)
+            self.wp_x = -5.6
+            self.wp_y = 5.54
+            self.wp_z = 30.0
+            way4 = 0
+        else if (way5==1)
+            self.wp_x = 0
+            self.wp_y = 0
+            self.wp_z = 30.0
+            way4 = 5
         self.currentyaw = 0
 
         self.cmd.rcRoll = 1500
