@@ -10,6 +10,8 @@ from std_msgs.msg import Float64
 import rospy
 import time
 
+coordinate = [ [5.57,-5.63], [5.55, 5.54], [-5.6,5.54]]
+i = 0
 
 class DroneFly():
     """docstring for DroneFly"""
@@ -114,6 +116,13 @@ class DroneFly():
 
         rospy.sleep(.1)
 
+    def isThere(self, i):
+        if(abs(self.drone_x)>abs(self.wp_x)-0.2 and abs(self.drone_x)<abs(self.wp_x)+0.2):
+            if(abs(self.drone_y)>abs(self.wp_y)-0.2 and abs(self.drone_y)<abs(self.wp_y)+0.2):
+                self.wp_x = coordinate[i][0];
+                self.wp_y = coordinate[i][1];
+                i = i+1
+
 
     def arm(self):
         self.cmd.rcAUX4 = 1500
@@ -160,7 +169,7 @@ class DroneFly():
             self.pluto_throt.publish(self.error_throt)
             self.pluto_roll.publish(self.error_roll)
             self.pluto_pitch.publish(self.error_pitch)
-
+            isThere()
 
     def calc_pid(self):
         self.seconds = time.time()
