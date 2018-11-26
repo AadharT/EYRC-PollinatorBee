@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+#This python script is hardcoded with PID coefficiets that were found using pid tuning gui package providied
+
+
 #The required packages are imported here
 from plutodrone.msg import *
 from pid_tune.msg import *
@@ -10,10 +13,7 @@ from std_msgs.msg import Float64
 import rospy
 import time
 
-way1 = 1
-way3 = 1
-way2 = 1
-way4 = 1
+i=0
 
 class DroneFly():
     """docstring for DroneFly"""
@@ -22,10 +22,12 @@ class DroneFly():
         rospy.init_node('pluto_fly', disable_signals = True)
 
         self.pluto_cmd = rospy.Publisher('/drone_command', PlutoMsg, queue_size=10)
+        #Publishers for plotting error with time graphs to aid in PID tuning
         self.pluto_roll = rospy.Publisher('/error_roll', Float32, queue_size=10)
         self.pluto_pitch = rospy.Publisher('/error_pitch', Float32, queue_size=10)
         self.pluto_throt = rospy.Publisher('/error_throt', Float32, queue_size=10)
 
+        #subscribers for yaw and roll pitch Altitude
         rospy.Subscriber('whycon/poses', PoseArray, self.get_pose)
         rospy.Subscriber('/drone_yaw', Float64, self.get_yaw)
 
@@ -38,31 +40,9 @@ class DroneFly():
         self.cmd = PlutoMsg()
 
         # Position to hold.
-        if (way1==1)
-            self.wp_x = -5.63
-            self.wp_y = -5.63
-            self.wp_z = 30.0
-            way1 = 0
-        else if (way2==1)
-            self.wp_x = 5.57
-            self.wp_y = -5.63
-            self.wp_z = 30.0
-            way2 = 0
-        else if (way3==1)
-            self.wp_x = 5.55
-            self.wp_y = 5.54
-            self.wp_z = 30.0
-            way3 = 0
-        else if (way4==1)
-            self.wp_x = -5.6
-            self.wp_y = 5.54
-            self.wp_z = 30.0
-            way4 = 0
-        else if (way5==1)
-            self.wp_x = 0
-            self.wp_y = 0
-            self.wp_z = 30.0
-            way4 = 5
+        self.wp_x = -5.63
+        self.wp_y = -5.63
+        self.wp_z = 30.0
         self.currentyaw = 0
 
         self.cmd.rcRoll = 1500
@@ -123,14 +103,14 @@ class DroneFly():
         self.I_value_throt = 0.0
         self.DerivatorT = 0.0
         self.IntegratorT = 0.0
-        # Pid calculation parameters for Throttle
+        # Pid calculation parameters for roll
         self.error_roll = 0.0
         self.P_value_roll = 0.0
         self.D_value_roll = 0.0
         self.I_value_roll = 0.0
         self.DerivatorR = 0.0
         self.IntegratorR = 0.0
-        # Pid calculation parameters for Throttle
+        # Pid calculation parameters for roll
         self.error_yaw = 0.0
         self.P_value_yaw = 0.0
         self.D_value_yaw = 0.0
@@ -151,6 +131,25 @@ class DroneFly():
         self.cmd.rcAUX4 = 1100
         self.pluto_cmd.publish(self.cmd)
         rospy.sleep(.1)
+    def land(self):
+        self.wp_z+=0.1
+        if (self.drone_z>40):
+            self.disarm()
+
+    def isThere(self):
+        coordinate = [ [5.57,-5.63], [5.55, 5.54], [-5.6,5.54],[0.0, 0.0, 30]]
+        if (abs(self.drone_x)<0.2 and abs(self.drone_y)<0.2 and i>3):
+            self.land()
+        global i
+        if(self.drone_x>self.wp_x-0.2 and self.drone_x<self.wp_x+0.2 and i<=3):
+            if(self.drone_y>self.wp_y-0.2 and self.drone_y<self.wp_y+0.2):
+                if(self.drone_z>28.5 and self.drone_z<31.5):
+                    print ("Visited Point: ", i+1)
+
+                    self.wp_x = coordinate[i][0];
+                    self.wp_y = coordinate[i][1];
+                    i = i+1
+
 
 
     def position_hold(self):
@@ -187,6 +186,8 @@ class DroneFly():
             self.pluto_roll.publish(self.error_roll)
             self.pluto_pitch.publish(self.error_pitch)
 
+            self.isThere()
+
 
     def calc_pid(self):
         self.seconds = time.time()
@@ -201,10 +202,10 @@ class DroneFly():
 
     def pid_yaw(self):
         #Compute Yaw PID is computed here
-        #PID coefficiets are put in this after finding out the correct values
-        self.error_yaw =  1 - self.currentyaw
-        self.P_value_yaw = 43 * self.error_yaw
-        self.D_value_yaw = 5 * ( self.error_yaw - self.DerivatorY)
+        #PID coefficiets are put in this after finding out the correct values for pid_tune package provided
+        self.error_yaw =  1 - self.currentyaw       #To get the starting orientation of YAW that is 1 or 0
+        self.P_value_yaw = 50 * self.error_yaw      #Replace 43 with kp_yaw and so on to use PID tune
+        self.D_value_yaw = 6 * ( self.error_yaw - self.DerivatorY)
         self.DerivatorY = self.error_yaw
 
         self.IntegratorY = self.IntegratorY + self.error_yaw
@@ -214,16 +215,17 @@ class DroneFly():
          # elif self.Integrator < -500:
          #     self.Integrator = self.Integrator_min
 
-        self.I_value_yaw = self.IntegratorY * 0
+        self.I_value_yaw = self.IntegratorY * 3
 
         self.correct_yaw = (self.P_value_yaw + self.I_value_yaw/1000 + self.D_value_yaw)/100
-        print ("Yaw: ",self.correct_yaw)
+        #print ("Yaw: ",self.correct_yaw)
 
 
     def pid_roll(self):
+        #Roll pid is computed here
         self.error_roll = self.wp_y - self.drone_y
-        self.P_value_roll = 171 * self.error_roll
-        self.D_value_roll = 203 * ( self.error_roll - self.DerivatorR)
+        self.P_value_roll = 1036 * self.error_roll       #Replace 43 with kp_roll and so on to use PID tune package
+        self.D_value_roll = 1036 * ( self.error_roll - self.DerivatorR)
         self.DerivatorR = self.error_roll
 
         self.IntegratorR = self.IntegratorR + self.error_roll
@@ -233,16 +235,17 @@ class DroneFly():
          # elif self.Integrator < -500:
          #     self.Integrator = self.Integrator_min
 
-        self.I_value_roll = self.IntegratorR * 60
+        self.I_value_roll = self.IntegratorR * 0
 
-        self.correct_roll = (self.P_value_roll + self.I_value_roll/1000 + self.D_value_roll)/100
-        print ("Roll", self.correct_roll)
-        #Compute Roll PID here
+        self.correct_roll = (self.P_value_roll - self.I_value_roll/1000 + self.D_value_roll)/100
+        #print ("Roll", self.correct_roll)
+
 
     def pid_pitch(self):
+        #Pitch pid is computed here
         self.error_pitch = self.wp_x - self.drone_x
-        self.P_value_pitch = 171 * self.error_pitch
-        self.D_value_pitch = 203 * ( self.error_pitch - self.DerivatorP)
+        self.P_value_pitch = 1036 * self.error_pitch
+        self.D_value_pitch = 1036 * ( self.error_pitch - self.DerivatorP)
         self.DerivatorP = self.error_pitch
 
         self.IntegratorP = self.IntegratorP + self.error_pitch
@@ -252,16 +255,17 @@ class DroneFly():
          # elif self.Integrator < -500:
          #     self.Integrator = self.Integrator_min
 
-        self.I_value_pitch = self.IntegratorP * 3
+        self.I_value_pitch = self.IntegratorP * 0
 
         self.correct_pitch = (self.P_value_pitch + self.I_value_pitch/1000 + self.D_value_pitch)/100
-        print ("Pitch", self.correct_pitch)
-        #Compute Pitch PID here
+        #print ("Pitch", self.correct_pitch)
+
 
     def pid_throt(self):
+        #throttle pid is computed here
         self.error_throt = self.wp_z - self.drone_z
         self.P_value_throt = 256 * self.error_throt
-        self.D_value_throt = 2100 * ( self.error_throt - self.DerivatorT)
+        self.D_value_throt = 11180 * ( self.error_throt - self.DerivatorT)
         self.DerivatorT = self.error_throt
 
         self.IntegratorT = self.IntegratorT + self.error_throt
@@ -271,13 +275,13 @@ class DroneFly():
          # elif self.Integrator < -500:
          #     self.Integrator = self.Integrator_min
 
-        self.I_value_throt = self.IntegratorT * 0
+        self.I_value_throt = self.IntegratorT * 3
 
         self.correct_throt = (self.P_value_throt + self.I_value_throt/1000 + self.D_value_throt)/100
 
 
-        print ("Throttle", self.kp_throt)
-        #Compute Throttle PID here
+        #print ("Throttle", self.kp_throt)
+
 
     def limit(self, input_value, max_value, min_value):
 
