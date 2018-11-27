@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-
-#This python script is hardcoded with PID coefficiets that were found using pid tuning gui package providied
-
-
-#The required packages are imported here
 from plutodrone.msg import *
 from pid_tune.msg import *
 from geometry_msgs.msg import PoseArray
@@ -20,8 +15,7 @@ from std_msgs.msg import Int32
 import rospy
 import time
 
-i=0
-
+i = 0
 class DroneFly():
     """docstring for DroneFly"""
     def __init__(self):
@@ -131,22 +125,8 @@ class DroneFly():
         self.DerivatorY = 0.0
         self.IntegratorY = 0.0
 
+
         rospy.sleep(.1)
-
-	def image_callback(self,msg):
-
-		# 'image' is now an opencv frame
-		# You can run opencv operations on 'image'
-		image = self.ros_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-		# image  = cv2.imread("pictureinput.jpg")
-		# red = cv2.inRange(image, (0,0,0), (150,130,255))
-		# blue = cv2.inRange(image, (0,0,0), (255,0,0))
-		# green = cv2.inRange(image, (0,0,0), (0,255,0))
-		# reder, contoursred, hierarchy = cv2.findContours(red,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-		# cv2.drawContours(frame, contoursred, -1, (0,255,0), 3)
-		# cv2.namedWindow("red")
-		cv2.imshow("red", frame)
-		cv2.waitKey(0)
 
 
     def arm(self):
@@ -167,7 +147,7 @@ class DroneFly():
 
     def at_origin(self):
         if (abs(self.drone_x) < 0.2 and abs(self.drone_y) < 0.2 and self.drone_z < 31.5 and self.drone_z>28.5):
-            i=i+1
+            return True;
 
     def isThere(self):
         coordinate = [ [5.57,-5.63], [5.55, 5.54], [-5.6,5.54],[0.0, 0.0, 30]]
@@ -199,6 +179,7 @@ class DroneFly():
 
             self.calc_pid()
 
+            self.findcolor()
             # Check your X and Y axis. You MAY have to change the + and the -.
             # We recommend you try one degree of freedom (DOF) at a time. Eg: Roll first then pitch and so on
             pitch_value = int(1500 - self.correct_pitch)
@@ -219,6 +200,8 @@ class DroneFly():
             self.pluto_pitch.publish(self.error_pitch)
 
             self.isThere()
+
+
 
 
     def calc_pid(self):
@@ -379,7 +362,33 @@ class DroneFly():
         self.currentyaw = yaw.data
 
 
+
+    def image_callback(self,msg):
+
+        # 'image' is now an opencv frame
+        # You can run opencv operations on 'image'
+        self.image = self.ros_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+    def findcolor(self):
+        red = cv2.inRange(self.image, (0,0,200), (0,0,255))
+        blue = cv2.inRange(self.image, (200,0,0), (255,0,0))
+        green = cv2.inRange(self.image, (0,200,0), (0,255,0))
+        reder, contoursred, hierarchy = cv2.findContours(red,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        print "Red Color: " , len(contoursred)
+        reder, contoursblue, hierarchy = cv2.findContours(blue,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        print "Blue Color: " , len(contoursblue)
+        reder, contoursgreen, hierarchy = cv2.findContours(green,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        print "Green Color: " , len(contoursgreen)
+        #
+        # cv2.drawContours(self.image, contoursgreen, -1, (0,255,0), 3)
+        # cv2.namedWindow("red")
+        # cv2.imshow("red", self.image)
+        # cv2.waitKey(0)
+
+
+
 if __name__ == '__main__':
+
     while not rospy.is_shutdown():
         temp = DroneFly()
         temp.position_hold()
