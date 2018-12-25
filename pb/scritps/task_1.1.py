@@ -298,7 +298,7 @@ class WayPoint():
 
         self.error_throt = self.wp_z - self.drone_z
         self.P_value_throt = 1485 * self.error_throt
-        self.D_value_throt = 36220 * ( self.error_throt - self.DerivatorT)/self.loop_time
+        self.D_value_throt = 1500 * ( self.error_throt - self.DerivatorT)/self.loop_time
         self.DerivatorT = self.error_throt
 
         self.IntegratorT = self.IntegratorT + self.error_throt*self.loop_time
@@ -379,4 +379,3 @@ if __name__ == '__main__':
         temp = WayPoint()
         temp.position_hold()
         rospy.spin()
-
