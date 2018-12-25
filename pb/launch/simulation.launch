@@ -1,17 +1,4 @@
 <launch>
-
-<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-    <param name="video_device" value="/dev/video1" />
-    <param name="image_width" value="640" />
-    <param name="image_height" value="480" />
-    <param name="pixel_format" value="yuyv" />
-    <param name="camera_frame_id" value="usb_cam" />
-    <param name="io_method" value="mmap"/>
-</node>
-
-<node name="image_proc" pkg="image_proc" type="image_proc" ns="usb_cam"/>
-
-
 <arg name="name" default="whycon"/>
 <arg name="targets" default="1"/>
 <arg name="outer_diameter" default=".55"/>
@@ -25,8 +12,8 @@
   <param name="input_queue_size" value="$(arg input_queue_size)"/> 
   <param name="name" value="$(arg name)"/>
 
-  <remap to="/usb_cam/camera_info" from="/camera/camera_info" /> 
-  <remap to="/usb_cam/image_rect_color" from="/camera/image_rect_color" />
+  <remap to="/visionSensor/camera_info" from="/camera/camera_info" /> 
+  <remap to="/visionSensor/image_rect" from="/camera/image_rect_color" />
     
 </node>
 

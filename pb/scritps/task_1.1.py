@@ -86,7 +86,7 @@ class WayPoint():
 
         # Loop time for PID computation. You are free to experiment with this
         self.last_time = 0.0
-        self.loop_time = 0.032
+        self.loop_time = 0.025
 
         # Pid calculation paramerters for Pitch
         self.error_pitch = 0.0
@@ -308,7 +308,7 @@ class WayPoint():
          # elif self.Integrator < -500:
          #     self.Integrator = self.Integrator_min
 
-        self.I_value_throt = self.IntegratorT * 3
+        self.I_value_throt = self.IntegratorT * 0
 
         self.correct_throt = (self.P_value_throt + self.I_value_throt/1000 + self.D_value_throt)/100
 
@@ -379,3 +379,4 @@ if __name__ == '__main__':
         temp = WayPoint()
         temp.position_hold()
         rospy.spin()
+
