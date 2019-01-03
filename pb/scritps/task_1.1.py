@@ -41,7 +41,7 @@ class WayPoint():
         # Position to hold.
         self.wp_x = 0.00
         self.wp_y = 0.00
-        self.wp_z = 5.0
+        self.wp_z = 10.0
         self.currentyaw = 0
 
         self.cmd.rcRoll = 1500
